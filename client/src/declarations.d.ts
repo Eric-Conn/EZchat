@@ -50,6 +50,12 @@ export interface ChatMessage extends Message {
     timestamp: Date;
 }
 
+interface args {
+    a: number;
+    b: number;
+    c: number;
+}
+
 // service definitions
 // ===================
 
@@ -71,6 +77,6 @@ export type receiveChatMessage = (event: WebSocketEvent) => ReceiveMessageResult
 export interface ChatMessageService {
     sendChatMessage: sendChatMessage;
     receiveChatMessage: receiveChatMessage;
-    deleteMessage: sendMessage;
-    editMessage: sendMessage;
+    deleteChatMessage: sendMessage;
+    editChatMessage: sendMessage;
 }
