@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
-import chatMessageService from './client'
+import { onMounted } from 'vue';
+import WebSocketClient from './client'
 
-const ws = new WebSocket('ws://localhost:3000')
-const service = new chatMessageService(ws)
+onMounted(async () => {
+  const url = "https://echo.websocket.org/"
+
+  const client = new WebSocketClient(url);
+
+  client.onConnect(() => {
+    console.log('Connected to server');
+  });
+  client.onMessageReceived((message) => {
+    console.log('Message received:', message);
+  });
+
+  await client.connect();
+  client.sendMessage('Hello');
+});
 </script>
 
 <template>

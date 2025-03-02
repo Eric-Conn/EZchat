@@ -1,63 +1,68 @@
-import type {
-    ChatMessageService,
-    ChatMessage,
-    SendMessageResult,
-    ReceiveMessageResult,
-    WebSocketEvent,
-    sendMessage
-} from "./declarations.d.ts";
-
-class chatMessageService implements ChatMessageService {
+export default class WebSocketClient {
     private webSocket: WebSocket;
+    private url: string;
 
-    sendChatMessage(message: ChatMessage): SendMessageResult {
-        this.webSocket.send(message.toString());
-        return true;
+    openHandler: (event: Event) => any;
+    messageHandler: (event: Event) => any;
+    closeHandler: (event: Event) => any;
+    errorHandler: (event: Event) => any;
+
+    constructor(url: string) {
+        this.webSocket = null;
+        this.url = url;
+
+        this.openHandler = this.defaultHandler;
+        this.messageHandler = this.defaultHandler;
+        this.closeHandler = this.defaultHandler;
+        this.errorHandler = this.defaultHandler;
     }
 
-    receiveChatMessage(event: WebSocketEvent): ReceiveMessageResult {
-        return this.receiveChatMessage(event.toString());
-    }
-
-    editChatMessage: sendMessage;
-    deleteChatMessage: sendMessage;
-
-    webSocketOpenHandler(event: Event) {
+    defaultHandler(event: Event) {
         console.log(event);
     }
 
-    webSocketCloseHandler(event: Event) {
-        console.log(event);
+    onConnect(handler: (event: Event) => any) {
+        this.openHandler = handler;
+    }
+    onDisconnect(handler: (event: Event) => any) {
+        this.closeHandler = handler;
+    }
+    onMessageReceived(handler: (event: Event) => any) {
+        this.messageHandler = handler;
+    }
+    onError(handler: (event: Event) => any) {
+        this.errorHandler = handler;
     }
 
-    webSocketMessageHandler(event: Event) {
-        return this.receiveChatMessage(event);
+    sendMessage(message: string) {
+        if (!this.webSocket || this.webSocket.readyState !== WebSocket.OPEN) {
+            throw new Error('WebSocket is not connected. Call connect() first.');
+        }
+        this.webSocket.send(message);
     }
 
-    webSocketErrorHandler(event: Event) {
-        console.log(event);
-    }
+    async connect() {
+        this.webSocket = new WebSocket(this.url);
 
-    bindWebSocketEvents() {
-        const eventMap = {
-            open: this.webSocketOpenHandler,
-            close: this.webSocketCloseHandler,
-            message: this.webSocketMessageHandler,
-            error: this.webSocketErrorHandler,
-        };
-
-        Object.keys(eventMap).forEach((event) => {
-            this.webSocket.addEventListener(event, eventMap[event]);
+        // return promise that resolves when the connection is established
+        const connectPromise = new Promise((resolve, reject) => {
+            this.webSocket.onopen = (event: Event) => {
+                this.openHandler(event);
+                resolve(event);
+            };
+            this.webSocket.onerror = (event: Event) => {
+                this.errorHandler(event);
+                reject(event);
+            };
+            this.webSocket.onclose = (event: Event) => {
+                this.closeHandler(event);
+                reject(event);
+            }
+            this.webSocket.onmessage = (event: Event) => {
+                this.messageHandler(event);
+            }
         });
+
+        return connectPromise;
     }
-
-    constructor(webSocket: WebSocket) {
-        this.webSocket = webSocket;
-        this.bindWebSocketEvents();
-    }
-
-    // deleteMessage: sendMessage;
-    // editMessage: sendMessage;
-};
-
-export default chatMessageService;
+}
